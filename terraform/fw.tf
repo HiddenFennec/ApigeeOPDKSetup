@@ -23,6 +23,15 @@ module "firewall" {
         { protocol = "tcp", ports = ["0-65535"] },
         { protocol = "udp", ports = ["0-65535"] }
       ]
+    },
+    allow-fw = {
+      description   = "Allow healthcheck to all."
+      source_ranges = ["35.191.0.0/16", "130.211.0.0/22"]
+      targets       = ["allow-health-checks"]
+      rules = [
+        { protocol = "tcp", ports = ["9000","8080"] },
+        { protocol = "tcp", ports = ["9001-9099"] }
+      ]
     }
   }
 }

@@ -15,7 +15,7 @@ module "jumphost" {
     }
   }
   service_account = module.service_account.email
-  tags            = ["ssh"]
+  tags            = ["ssh", "allow-health-checks"]
   instance_type   = "n2-standard-2"
   metadata = {
     startup-script = <<-EOF
@@ -49,7 +49,7 @@ module "vm" {
     }
   }
   service_account = module.service_account.email
-  tags            = ["ssh"]
+  tags            = ["ssh", "allow-health-checks"]
   instance_type   = var.vm_machine_type
 
   metadata = {
