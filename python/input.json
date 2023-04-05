@@ -1,0 +1,12 @@
+{
+    "ips":{
+        "IP1" : "192.168.1.1",
+        "IP2" : "192.168.1.2",
+        "IP3" : "192.168.1.3",
+        "IP4" : "192.168.1.4",
+        "IP5" : "192.168.1.5"
+    },
+    "APIGEE_ADMINPW" : "Manager123",
+    "LICENSE_FILE" : "/opt/apigee/lic.txt",
+    "APIGEE_LDAPPW"  : "Manager123"
+}

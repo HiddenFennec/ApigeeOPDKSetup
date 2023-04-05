@@ -1,0 +1,12 @@
+---
+# defaults file for configure-apigee-setup
+gcp_project_id: "apigee-hybrid-378710"
+apigeerepobasepath: "/opt/apigee"
+gcs_bucket: "apigee-opdk-bainries"
+apigee_archive_file_name: "apigee-4.52.00.tar.gz"
+opdk_version: "4.52.00"
+java_home: /usr/lib/jvm/java-openjdk
+apigee_service: "/opt/apigee/apigee-service/bin/apigee-service"
+apigee_home: /opt/apigee
+apigee_silent_file_name: 'silent.conf'
+apigee_lic_file_name: 'lic.txt'

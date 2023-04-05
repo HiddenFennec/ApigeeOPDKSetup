@@ -1,0 +1,47 @@
+---
+- name: Complete OS Pre-requisites
+  hosts: all
+  tags: ['os']
+  roles:
+  - { role: os-pre-req, jdk_version: '1.8' }
+
+- name: Apigee Setup
+  hosts: all
+  tags: ['apigee-setup']
+  roles:
+  - { role: configure-apigee-setup, jdk_version: '1.8' }
+
+- name: Apigee DS Component Setup
+  hosts: ds
+  tags: ['ds']
+  roles:
+  - { role: apigee-opdk-setup-component, profile: 'ds' , target_response_file_path: /opt/apigee/silent.conf }
+
+
+- name: Apigee MS Component Setup
+  hosts: ms
+  tags: ['ms']
+  roles:
+  - { role: apigee-opdk-setup-component, profile: 'ms' , target_response_file_path: /opt/apigee/silent.conf }
+
+- name: Apigee RMP Component Setup
+  hosts: rmp
+  tags: ['rmp']
+  roles:
+  - { role: apigee-opdk-setup-component, profile: 'rmp' , target_response_file_path: /opt/apigee/silent.conf }
+
+- name: Apigee SAX Component Setup
+  hosts: sax
+  tags: ['sax']
+  roles:
+  - { role: apigee-opdk-setup-component, profile: 'sax' , target_response_file_path: /opt/apigee/silent.conf }
+
+- name: Apigee restart UI
+  hosts: ms
+  tags: ['ui-restart']
+  tasks:
+  - name: restart a specific Apigee component on the node
+    shell: '/opt/apigee/apigee-service/bin/apigee-service edge-ui restart'
+
+  - name: wait_for_ready a specific Apigee component on the node
+    shell: '/opt/apigee/apigee-service/bin/apigee-service edge-ui wait_for_ready'

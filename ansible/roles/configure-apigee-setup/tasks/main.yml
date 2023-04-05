@@ -1,0 +1,120 @@
+---
+# tasks file for configure-apigee-setup
+# - name: Download an object
+#   google.cloud.gcp_storage_object:
+#     action: download
+#     bucket: '{{ gcs_bucket }}'
+#     src: '{{ apigee_archive_file_name }}'
+#     dest: '{{ apigeerepobasepath | default(opdk_resources_path) }}/{{ apigee_archive_file_name }}'
+#     project: '{{ gcp_project_id }}'
+#     auth_kind: machineaccount
+
+- name: Create a directory if it does not exist
+  become: true
+  file:
+    path: '{{ apigeerepobasepath }}'
+    state: directory
+    mode: '0755'
+
+- name: Copy Apigee Binaries
+  become: true
+  shell: 'gsutil cp -n gs://{{ gcs_bucket }}/{{ apigee_archive_file_name }} {{ apigeerepobasepath | default(opdk_resources_path) }}/{{ apigee_archive_file_name }}'
+
+- name: Copy Apigee license
+  become: true
+  shell: 'gsutil cp -n gs://{{ gcs_bucket }}/{{ apigee_lic_file_name }} {{ apigeerepobasepath | default(opdk_resources_path) }}/{{ apigee_lic_file_name }}'
+
+
+- name: Copy Apigee SilentConfig
+  become: true
+  shell: 'gsutil cp -n gs://{{ gcs_bucket }}/{{ apigee_silent_file_name }} {{ apigeerepobasepath | default(opdk_resources_path) }}/{{ apigee_silent_file_name }}'
+
+
+- name: Unarchive on target node
+  become: true
+  unarchive:
+    src: '{{ apigeerepobasepath | default(opdk_resources_path) }}/{{ apigee_archive_file_name }}'
+    dest: '{{ apigeerepobasepath | default(opdk_resources_path) }}'
+    copy: false
+
+- name: Install bootstrap from local repository for 4.16.01
+  become: true
+  become_user: root
+  shell: "bash {{ apigeerepobasepath | default(opdk_resources_path) }}/repos/bootstrap.sh apigeeprotocol='file://' apigeerepobasepath={{ apigeerepobasepath | default(opdk_resources_path) }}/repos JAVA_FIX=C"
+  environment:
+    JAVA_HOME: '{{ java_home }}'
+  when: opdk_version is version_compare('4.16.01', '==')
+
+- name: DEBUG_MODE - Install bootstrap from local repository for 4.16.01
+  become: true
+  become_user: root
+  shell: "bash -x {{ apigeerepobasepath | default(opdk_resources_path) }}/repos/bootstrap.sh apigeeprotocol='file://' apigeerepobasepath={{ apigeerepobasepath | default(opdk_resources_path) }}/repos JAVA_FIX=C"
+  environment:
+    JAVA_HOME: '{{ java_home }}'
+  when: opdk_version is version_compare('4.16.01', '==') and opdk_debug_mode is defined and opdk_debug_mode | trim | lower == 'on'
+
+- name: Install bootstrap from local repository for greater than 4.16.01
+  become: true
+  become_user: root
+  shell: "bash {{ apigeerepobasepath | default(opdk_resources_path) }}/repos/bootstrap_{{ opdk_version }}.sh apigeeprotocol='file://' apigeerepobasepath={{ apigeerepobasepath | default(opdk_resources_path) }}/repos JAVA_FIX=C"
+  environment:
+    JAVA_HOME: '{{ java_home }}'
+  when: opdk_version is version_compare('4.16.01', '>')
+
+- name: DEBUG_MODE - Install bootstrap from local repository for greater than 4.16.01
+  become: true
+  become_user: root
+  shell: "bash -x {{ apigeerepobasepath | default(opdk_resources_path) }}/repos/bootstrap_{{ opdk_version }}.sh apigeeprotocol='file://' apigeerepobasepath={{ apigeerepobasepath | default(opdk_resources_path) }}/repos JAVA_FIX=C"
+  environment:
+    JAVA_HOME: '{{ java_home }}'
+  when: opdk_version is version_compare('4.16.01', '>') and opdk_debug_mode is defined and opdk_debug_mode | trim | lower == 'on'
+
+- block:
+
+  - name: Uninstall Apigee Setup, if it exists
+    ignore_errors: "{{ ignore_errors | default('yes') }}"
+    shell: '{{ apigee_service }} apigee-setup uninstall'
+    args:
+      removes: "{{ apigee_home }}/apigee-setup"
+    when: opdk_version is version_compare('4.16', '>=')
+
+  - name: Uninstall Apigee Admin, if it exists
+    ignore_errors: "{{ ignore_errors | default('yes') }}"
+    shell: '{{ apigee_service }} apigee-adminapi uninstall'
+    args:
+      removes: "{{ apigee_home }}/apigee-adminapi"
+    when: opdk_version is version_compare('4.16', '>=')
+
+  - name: Uninstall Apigee Provision, if it exists
+    ignore_errors: "{{ ignore_errors | default('yes') }}"
+    shell: '{{ apigee_service }} apigee-provision uninstall'
+    args:
+      removes: "{{ apigee_home }}/apigee-provision"
+    when: opdk_version is version_compare('4.16', '>=')
+
+  - name: Uninstall Apigee Migrate, if it exists
+    ignore_errors: "{{ ignore_errors | default('yes') }}"
+    shell: '{{ apigee_service }} apigee-migrate uninstall'
+    args:
+      removes: "{{ apigee_home }}/apigee-migrate"
+    when: opdk_version is version_compare('4.16', '>=')
+
+  when: upgrade_edge is defined and upgrade_edge | bool == True
+
+- name: Install Apigee Setup
+  shell: '{{ apigee_service }} apigee-setup install'
+  args:
+    creates: "{{ apigee_home }}/apigee-setup"
+  environment:
+    no_proxy: "{{ no_proxy | default('') }}"
+    http_proxy: "{{ http_proxy | default('') }}"
+    https_proxy: "{{ https_proxy | default('') }}"
+
+- name: Install Apigee Admin
+  shell: '{{ apigee_service }} apigee-adminapi install'
+  args:
+    creates: "{{ apigee_home }}/apigee-adminapi"
+  environment:
+    no_proxy: "{{ no_proxy | default('') }}"
+    http_proxy: "{{ http_proxy | default('') }}"
+    https_proxy: "{{ https_proxy | default('') }}"

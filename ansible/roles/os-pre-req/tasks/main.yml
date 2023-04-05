@@ -1,0 +1,132 @@
+---
+- name: Refresh setup facts
+  setup:
+
+- name: Indicate whether selinux is disabled
+  set_fact:
+    cacheable: yes
+    selinux_disabled: "{{ ansible_selinux.status == 'disabled' }}"
+
+- name: Confirm existence of selinux config file
+  stat:
+    path: /etc/sysconfig/selinux
+  register: selinux_state
+
+- block:
+  - name: Permanently disable SELINUX
+    selinux:
+      state: disabled
+    when:  ansible_selinux.status == 'enabled'
+    register: selinux_disabled
+
+  - name: Persist SELINUX disabled state
+    lineinfile:
+      path: /etc/sysconfig/selinux
+      line: 'SELINUX=disabled'
+      regexp: '^SELINUX=.*'
+  become: yes
+  when: selinux_state.stat.exists
+
+
+- name: Restart node
+  debug:
+    msg: 'SELinux MUST be disabled, selinux has been updated, please restart node now...'
+  when: selinux_disabled.changed
+
+
+- block:
+
+  - name: Stop Iptables service
+    become: yes
+    service:
+      name: iptables
+      state: stopped
+    register: iptables_service
+
+  - name: Indicate whether iptables are disabled
+    set_fact:
+      cacheable: yes
+      iptables_disabled: "{{ (iptables_service.state == 'disabled') or (iptables_service.state == 'stopped') }}"
+
+  - name: Fail playbook if Iptables is running
+    fail:
+      msg: 'iptables must be disabled, please restart node'
+    when: iptables_disabled is defined and not iptables_disabled
+
+  when: (ansible_distribution | lower == "centos" or ansible_distribution | lower == "oraclelinux")  and ansible_distribution_major_version is version_compare("7", "<") and not ansible_virtualization_type | lower == "docker"
+
+- block:
+
+  - name: Assert that firewalld is installed
+    stat:
+      path: /usr/sbin/firewalld
+    register: result
+
+  - name: Stop Firewalld service
+    become: yes
+    service:
+      name: firewalld
+      state: stopped
+      enabled: no
+    when: result.stat.exists
+
+  when: (ansible_distribution | lower == "centos" or ansible_distribution | lower == "oraclelinux")  and ansible_distribution_major_version is version_compare("7", ">=") and not ansible_virtualization_type | lower == "docker"
+
+- name: Update cache with key and value
+  set_fact:
+    cacheable: yes
+    jdk_version: "{{ jdk_version }}"
+    java_home: '{{ java_home }}'
+
+- block:
+
+  - name: Install Java JDK with proxy
+    become: yes
+    yum:
+      name: "java-{{ jdk_version }}.0-openjdk-devel.{{ ansible_architecture }}"
+      state: present
+      disable_gpg_check: yes
+    environment:
+      http_proxy: "{{ http_proxy | default('') }}"
+      https_proxy: "{{ https_proxy | default('') }}"
+      no_proxy: "{{ no_proxy | default('') }}"
+
+  rescue:
+    - name: Install Java JDK with proxy
+      become: yes
+      yum:
+        name: "java-{{ jdk_version }}.0-openjdk-devel"
+        state: present
+        disable_gpg_check: yes
+      environment:
+        http_proxy: "{{ http_proxy | default('') }}"
+        https_proxy: "{{ https_proxy | default('') }}"
+        no_proxy: "{{ no_proxy | default('') }}"
+
+- name: Update environment with path to JAVA_HOME
+  become: yes
+  lineinfile:
+    dest: /etc/environment
+    regexp: "^export JAVA_HOME"
+    line: 'export JAVA_HOME={{ java_home }}'
+    backup: yes
+
+- name: Restarting node now
+  become: yes
+  reboot:
+    reboot_timeout: "{{ start_check_delay | d(15) }}"
+  async: 1
+  poll: 0
+
+- name: Waiting for server to complete restarting
+  become: no
+  local_action:
+    module: wait_for
+    host: '{{ inventory_hostname }}'
+    state: started
+    delay: "{{ start_check_delay | d(15) }}"
+    timeout: '{{ server_restart_timeout | d(60) }}'
+
+- name: Report server started
+  debug:
+    msg: "Apigee node is ready."
