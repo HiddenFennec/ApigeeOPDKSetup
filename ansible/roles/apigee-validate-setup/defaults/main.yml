@@ -1,0 +1,4 @@
+---
+# defaults file for apigee-validate-setup
+apigee_validate_config_file: /opt/apigee/apigee-validate.conf
+vhost_port: 9001

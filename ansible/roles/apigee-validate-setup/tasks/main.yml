@@ -1,0 +1,16 @@
+---
+# tasks file for apigee-validate-setup
+- name: Install Apigee Validate
+  shell: '/opt/apigee/apigee-service/bin/apigee-service apigee-validate install'
+
+- name: Create apigee-validate configuration file for RMP
+  become: true
+  template:
+    src: validate.j2
+    dest: '{{ apigee_validate_config_file }}'
+    owner: 'apigee'
+    group: 'apigee'
+    force: yes
+
+- name: Validate OPDK Installation
+  shell: '/opt/apigee/apigee-service/bin/apigee-service apigee-validate setup -f {{ apigee_validate_config_file }}'

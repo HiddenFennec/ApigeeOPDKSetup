@@ -9,3 +9,11 @@ output "svc_account" {
 output "apigee_nodes" {
   value = [for vm in module.vm : vm.internal_ip]
 }
+
+output "subdomains" {
+  value = module.nip-development-hostname.subdomains
+}
+
+output "ip_address" {
+  value = module.nip-development-hostname.ip_address
+}

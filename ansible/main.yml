@@ -45,3 +45,9 @@
 
   - name: wait_for_ready a specific Apigee component on the node
     shell: '/opt/apigee/apigee-service/bin/apigee-service edge-ui wait_for_ready'
+
+- name: Apigee validate 
+  hosts: ms
+  tags: ['validate']
+  roles:
+  - { role: apigee-validate-setup }
