@@ -17,3 +17,7 @@ output "subdomains" {
 output "ip_address" {
   value = module.nip-development-hostname.ip_address
 }
+
+output "northbound_subdomains" {
+  value = module.nip-development-hostname-northbound.subdomains
+}

@@ -30,7 +30,7 @@ module "firewall" {
       targets       = ["allow-health-checks"]
       rules = [
         { protocol = "tcp", ports = ["9000", "8080"] },
-        { protocol = "tcp", ports = ["9001-9099"] }
+        { protocol = "tcp", ports = ["9001-9099","15999"] }
       ]
     }
   }
